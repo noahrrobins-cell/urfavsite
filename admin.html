@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5edda">
+  <title>Picture Desk · The Fav Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5edda;
+      --ink: #171714;
+      --pink: #f04d87;
+      --green: #d8ff48;
+      --teal: #147b75;
+      --red: #a5173e;
+      --mono: "DM Mono", "Courier New", monospace;
+      --display: "Playfair Display", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { overflow-x: clip; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: clip;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#1717141c 0.8px, transparent 0.8px);
+      background-size: 13px 13px;
+      font-family: var(--mono);
+    }
+
+    [hidden] { display: none !important; }
+    button, input { font: inherit; }
+
+    .page-shell {
+      width: min(100% - 32px, 1040px);
+      min-height: 100vh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 76px;
+      border-bottom: 1px solid var(--ink);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand { display: inline-flex; align-items: center; gap: 10px; }
+    .brand-mark {
+      display: grid;
+      width: 25px;
+      aspect-ratio: 1;
+      place-items: center;
+      background: var(--pink);
+      border: 1px solid var(--ink);
+      border-radius: 50%;
+      font-family: var(--display);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 4px; }
+    a:hover { color: var(--red); }
+
+    main { flex: 1; padding: 44px 0 56px; }
+    .eyebrow, .field-label, .file-note {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow { margin: 0 0 14px; color: var(--teal); font-weight: 500; }
+    h1, h2, p { margin-top: 0; }
+    h1 {
+      margin-bottom: 12px;
+      font-family: var(--display);
+      font-size: clamp(36px, 6vw, 58px);
+      font-weight: 900;
+      line-height: 1.05;
+    }
+    h2 { margin-bottom: 8px; font-family: var(--display); font-size: 25px; }
+    .intro { max-width: 560px; margin-bottom: 30px; color: #59564d; font-size: 13px; line-height: 1.7; }
+
+    .login-panel, .desk { border-top: 1px solid var(--ink); padding-top: 28px; }
+    .login-panel { max-width: 440px; }
+    .login-form { display: grid; gap: 16px; margin-top: 25px; }
+    .field { display: grid; gap: 7px; text-align: left; }
+    .field-label { font-weight: 500; }
+    .text-input {
+      width: 100%;
+      min-height: 48px;
+      padding: 0 12px;
+      color: var(--ink);
+      background: #fffdf5;
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      font-size: 14px;
+    }
+    .text-input:focus-visible, input[type="file"]:focus-visible, button:focus-visible, a:focus-visible {
+      outline: 3px solid var(--teal);
+      outline-offset: 3px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 46px;
+      width: fit-content;
+      padding: 0 18px;
+      color: var(--paper);
+      background: var(--ink);
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      box-shadow: 4px 4px 0 var(--pink);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: transform 150ms ease, box-shadow 150ms ease, color 150ms ease, background 150ms ease;
+    }
+    .button:hover { color: var(--ink); background: var(--green); transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--pink); }
+    .button:disabled { cursor: wait; opacity: 0.65; }
+    .button-secondary { min-height: 38px; color: var(--ink); background: transparent; box-shadow: none; }
+    .button-secondary:hover { box-shadow: none; }
+
+    .status { min-height: 22px; margin: 14px 0 0; font-size: 12px; line-height: 1.5; }
+    .status[data-kind="error"] { color: #9f173c; }
+    .status[data-kind="success"] { color: #126c51; }
+
+    .desk-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
+    .desk-heading h1 { margin-bottom: 5px; }
+    .desk-heading p { margin: 0; color: #59564d; font-size: 12px; }
+    .upload-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 14px;
+      padding: 20px 0;
+      border-top: 1px solid #17171455;
+      border-bottom: 1px solid #17171455;
+    }
+    input[type="file"] { width: 100%; max-width: 460px; font-size: 12px; }
+    .file-note { margin: 8px 0 0; color: #59564d; font-size: 9px; letter-spacing: 0.08em; }
+
+    .gallery-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 28px 0 14px; }
+    .gallery-head h2 { margin: 0; }
+    .gallery-head span { color: #59564d; font-size: 10px; }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    .picture-choice {
+      display: block;
+      width: 100%;
+      padding: 0;
+      color: var(--ink);
+      background: #fffdf5;
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 150ms ease, box-shadow 150ms ease;
+    }
+    .picture-choice:hover { transform: translateY(-3px); box-shadow: 4px 4px 0 var(--green); }
+    .picture-choice[aria-pressed="true"] { box-shadow: 4px 4px 0 var(--pink); }
+    .thumb-wrap { position: relative; overflow: hidden; aspect-ratio: 1.18; background: #ded0ba; border-bottom: 1px solid var(--ink); }
+    .thumb-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .selected-tag {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 6px 8px;
+      color: var(--ink);
+      background: var(--green);
+      border: 1px solid var(--ink);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .picture-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 10px; }
+    .picture-meta strong { overflow: hidden; font-size: 10px; font-weight: 500; text-overflow: ellipsis; }
+    .picture-meta span { flex: 0 0 auto; color: var(--teal); font-size: 9px; text-transform: uppercase; }
+    .empty-state { grid-column: 1 / -1; padding: 24px 0; color: #59564d; font-size: 13px; }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 48px;
+      border-top: 1px solid var(--ink);
+      color: #59564d;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 600px) {
+      .page-shell { width: min(100% - 28px, 1040px); }
+      .topbar { min-height: 62px; font-size: 9px; }
+      main { padding-top: 32px; }
+      .desk-heading { align-items: flex-start; flex-direction: column; }
+      .upload-row { grid-template-columns: 1fr; justify-items: start; }
+      .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .picture-meta { align-items: flex-start; flex-direction: column; }
+      .footer { font-size: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">f</span><span>The Fav Club</span></div>
+      <a href="/">Back to the curtain</a>
+    </header>
+
+    <main>
+      <p class="eyebrow">The picture department · No. 01</p>
+
+      <section class="login-panel" id="login-panel">
+        <h1>Picture desk</h1>
+        <p class="intro">Sign in to choose who is waiting behind the curtain.</p>
+        <form class="login-form" id="login-form">
+          <label class="field">
+            <span class="field-label">Username</span>
+            <input class="text-input" name="username" autocomplete="username" required>
+          </label>
+          <label class="field">
+            <span class="field-label">Password</span>
+            <input class="text-input" name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <button class="button" type="submit"><span aria-hidden="true">✳</span> Sign in</button>
+        </form>
+        <p class="status" id="login-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="desk" id="desk" hidden>
+        <div class="desk-heading">
+          <div>
+            <h1>Picture desk</h1>
+            <p>Pick a portrait or add a new one to the collection.</p>
+          </div>
+          <button class="button button-secondary" id="logout-button" type="button">Sign out</button>
+        </div>
+
+        <form class="upload-row" id="upload-form">
+          <div>
+            <label class="field" for="picture-file">
+              <span class="field-label">Add a picture</span>
+              <input id="picture-file" name="picture" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required>
+            </label>
+            <p class="file-note">JPG, PNG, WEBP, or GIF · Up to 8 MB</p>
+          </div>
+          <button class="button" id="upload-button" type="submit">Upload picture</button>
+        </form>
+
+        <p class="status" id="desk-status" role="status" aria-live="polite"></p>
+        <div class="gallery-head">
+          <h2>Your pictures</h2>
+          <span id="picture-count"></span>
+        </div>
+        <div class="gallery" id="gallery" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Made with very good taste</span>
+      <span>For our favorite, always</span>
+    </footer>
+  </div>
+
+  <script>
+    const loginPanel = document.querySelector("#login-panel");
+    const loginForm = document.querySelector("#login-form");
+    const loginStatus = document.querySelector("#login-status");
+    const desk = document.querySelector("#desk");
+    const deskStatus = document.querySelector("#desk-status");
+    const gallery = document.querySelector("#gallery");
+    const pictureCount = document.querySelector("#picture-count");
+    const uploadForm = document.querySelector("#upload-form");
+    const uploadButton = document.querySelector("#upload-button");
+
+    async function request(url, options = {}) {
+      const response = await fetch(url, { cache: "no-store", ...options });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Something went wrong.");
+      }
+      return result;
+    }
+
+    function setStatus(element, message, kind = "") {
+      element.textContent = message;
+      element.dataset.kind = kind;
+    }
+
+    function showDesk(isSignedIn) {
+      loginPanel.hidden = isSignedIn;
+      desk.hidden = !isSignedIn;
+    }
+
+    async function loadPictures() {
+      const data = await request("/api/admin/pictures");
+      gallery.replaceChildren();
+      pictureCount.textContent = `${data.pictures.length} ${data.pictures.length === 1 ? "picture" : "pictures"}`;
+
+      if (data.pictures.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "empty-state";
+        empty.textContent = "No pictures yet. Upload one to start your collection.";
+        gallery.append(empty);
+        return;
+      }
+
+      for (const filename of data.pictures) {
+        const isSelected = filename === data.selected;
+        const button = document.createElement("button");
+        button.className = "picture-choice";
+        button.type = "button";
+        button.setAttribute("aria-pressed", String(isSelected));
+        button.setAttribute("aria-label", `${filename}${isSelected ? ", currently under the curtain" : ", select picture"}`);
+
+        const thumbnail = document.createElement("div");
+        thumbnail.className = "thumb-wrap";
+        const image = document.createElement("img");
+        image.src = `/pictures/${encodeURIComponent(filename)}`;
+        image.alt = "";
+        image.loading = "lazy";
+        thumbnail.append(image);
+
+        if (isSelected) {
+          const tag = document.createElement("span");
+          tag.className = "selected-tag";
+          tag.textContent = "Under the curtain";
+          thumbnail.append(tag);
+        }
+
+        const meta = document.createElement("span");
+        meta.className = "picture-meta";
+        const name = document.createElement("strong");
+        name.textContent = filename;
+        const action = document.createElement("span");
+        action.textContent = isSelected ? "Selected" : "Choose";
+        meta.append(name, action);
+        button.append(thumbnail, meta);
+        button.addEventListener("click", async () => {
+          if (isSelected) return;
+          button.disabled = true;
+          setStatus(deskStatus, "Changing the picture...");
+          try {
+            await request("/api/admin/select", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ filename })
+            });
+            await loadPictures();
+            setStatus(deskStatus, "Picture changed. The curtain is ready.", "success");
+          } catch (error) {
+            setStatus(deskStatus, error.message, "error");
+            button.disabled = false;
+          }
+        });
+        gallery.append(button);
+      }
+    }
+
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submitButton = loginForm.querySelector("button[type='submit']");
+      submitButton.disabled = true;
+      setStatus(loginStatus, "Checking your details...");
+      try {
+        const fields = new FormData(loginForm);
+        await request("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: fields.get("username"), password: fields.get("password") })
+        });
+        loginForm.reset();
+        showDesk(true);
+        setStatus(deskStatus, "Signed in. Choose a picture below.", "success");
+        await loadPictures();
+      } catch (error) {
+        setStatus(loginStatus, error.message, "error");
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    uploadForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      uploadButton.disabled = true;
+      setStatus(deskStatus, "Adding picture to the collection...");
+      try {
+        const formData = new FormData(uploadForm);
+        const result = await request("/api/admin/upload", { method: "POST", body: formData });
+        uploadForm.reset();
+        await loadPictures();
+        setStatus(deskStatus, `${result.filename} added. Select it below when you are ready.`, "success");
+      } catch (error) {
+        setStatus(deskStatus, error.message, "error");
+      } finally {
+        uploadButton.disabled = false;
+      }
+    });
+
+    document.querySelector("#logout-button").addEventListener("click", async () => {
+      try {
+        await request("/api/admin/logout", { method: "POST" });
+      } finally {
+        showDesk(false);
+        setStatus(loginStatus, "You are signed out.", "success");
+      }
+    });
+
+    request("/api/admin/session")
+      .then(async ({ authenticated }) => {
+        showDesk(authenticated);
+        if (authenticated) await loadPictures();
+      })
+      .catch((error) => setStatus(loginStatus, error.message, "error"));
+  </script>
+</body>
+</html>

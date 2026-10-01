@@ -7,17 +7,13 @@ A small, local Python server for the curtain-reveal website. The server uses onl
 From this folder, start the site with:
 
 ```powershell
-py app.py
+python app.py
 ```
 
 Then open <http://127.0.0.1:8000>. Stop the server with `Ctrl+C`.
 
-## Choose the revealed picture
+## Manage pictures
 
-Put a `.jpg`, `.jpeg`, `.png`, `.webp`, or `.gif` image in `pictures/`, then set `FEATURED_PICTURE` near the top of `app.py` to that filename. For example:
+Open <http://127.0.0.1:8000/admin> and sign in with username `nrobins` and the password you provided. Upload a JPG, PNG, WEBP, or GIF up to 8 MB, then select its thumbnail to put it behind the curtain. Your selection is saved across server restarts.
 
-```python
-FEATURED_PICTURE = "portrait-02.jpg"
-```
-
-Restart the server and refresh the page to see the selected picture. Four sample portraits are included in `pictures/`; you can replace them with pictures you have permission to use.
+Pictures in `pictures/` are shown as thumbnails in the admin page. The admin page is intended for local use only; the server binds to `127.0.0.1` and should not be exposed to the public internet with the built-in credentials.
