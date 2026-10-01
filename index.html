@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5edda">
+  <title>The Fav Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5edda;
+      --ink: #171714;
+      --pink: #f04d87;
+      --green: #d8ff48;
+      --teal: #147b75;
+      --red: #a5173e;
+      --mono: "DM Mono", "Courier New", monospace;
+      --display: "Playfair Display", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { overflow-x: clip; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: clip;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#1717141c 0.8px, transparent 0.8px);
+      background-size: 13px 13px;
+      font-family: var(--mono);
+    }
+
+    .page-shell {
+      width: min(100% - 32px, 1120px);
+      min-height: 100vh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 76px;
+      border-bottom: 1px solid var(--ink);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand { display: inline-flex; align-items: center; gap: 10px; }
+    .brand-mark {
+      display: grid;
+      width: 25px;
+      aspect-ratio: 1;
+      place-items: center;
+      background: var(--pink);
+      border: 1px solid var(--ink);
+      border-radius: 50%;
+      font-family: var(--display);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .issue { color: #59564d; }
+
+    main {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 0 34px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      margin: 0 0 18px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .stage-wrap {
+      position: relative;
+      width: min(100%, 650px);
+      padding: 12px;
+      background: var(--green);
+      border: 1px solid var(--ink);
+      box-shadow: 7px 7px 0 var(--ink);
+      transform: rotate(-1deg);
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      aspect-ratio: 1.28;
+      background: var(--teal);
+      border: 1px solid var(--ink);
+      isolation: isolate;
+    }
+
+    .portrait-frame {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #d7ac87;
+    }
+
+    .portrait-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 38%;
+    }
+
+    .curtain {
+      position: absolute;
+      z-index: 2;
+      top: 0;
+      bottom: 0;
+      width: 51%;
+      background-color: var(--red);
+      background-image: repeating-linear-gradient(90deg, #670d2d00 0 24px, #600b2b55 25px 29px, #f6799740 31px 34px, #670d2d00 38px 57px), linear-gradient(90deg, #c8325d, #8e1037 48%, #b41c49);
+      box-shadow: inset 0 0 24px #3e071c88;
+      transition: transform 1100ms cubic-bezier(.72, 0, .19, 1);
+    }
+
+    .curtain::before {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 17%;
+      content: "";
+      background: radial-gradient(ellipse at 50% 0, #ed6b8a 0 48%, transparent 51%) 0 0 / 54px 34px repeat-x;
+      filter: drop-shadow(0 4px 2px #510a27aa);
+    }
+
+    .curtain-left { left: 0; transform-origin: left center; }
+    .curtain-right { right: 0; transform-origin: right center; }
+    .stage.is-open .curtain-left { transform: translateX(-94%); }
+    .stage.is-open .curtain-right { transform: translateX(94%); }
+
+    .stage.is-open .curtain-left,
+    .stage.is-open .curtain-right { transition-duration: 1250ms; }
+
+    .side-note {
+      position: absolute;
+      top: 50%;
+      z-index: 3;
+      padding: 7px 9px;
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      writing-mode: vertical-rl;
+    }
+
+    .side-note.left { left: -29px; transform: translateY(-50%) rotate(180deg); }
+    .side-note.right { right: -29px; transform: translateY(-50%); }
+
+    .reveal-copy {
+      margin: 31px 0 0;
+      animation: copy-in 550ms 700ms both;
+    }
+
+    .reveal-copy[hidden] { display: none; }
+
+    .page-heading {
+      margin: 0 0 24px;
+      font-family: var(--display);
+      font-size: clamp(34px, 7vw, 64px);
+      font-weight: 900;
+      line-height: 1.04;
+    }
+
+    .reveal-copy p {
+      display: inline-block;
+      margin: 18px 0 0;
+      padding: 9px 15px 10px;
+      background: var(--pink);
+      border: 1px solid var(--ink);
+      box-shadow: 3px 3px 0 var(--ink);
+      font-size: clamp(14px, 2.5vw, 18px);
+      font-weight: 500;
+      transform: rotate(1deg);
+    }
+
+    .reveal-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      min-height: 49px;
+      margin-top: 30px;
+      padding: 0 23px;
+      color: var(--paper);
+      background: var(--ink);
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      box-shadow: 4px 4px 0 var(--pink);
+      cursor: pointer;
+      font: 500 11px var(--mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: transform 150ms ease, box-shadow 150ms ease, color 150ms ease, background 150ms ease;
+    }
+
+    .reveal-button:hover {
+      color: var(--ink);
+      background: var(--green);
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--pink);
+    }
+
+    .reveal-button:focus-visible { outline: 3px solid var(--teal); outline-offset: 5px; }
+    .button-star { color: var(--green); font-size: 17px; }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 48px;
+      border-top: 1px solid var(--ink);
+      color: #59564d;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .footer span:last-child { color: var(--ink); }
+
+    @keyframes copy-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 560px) {
+      .page-shell { width: min(100% - 28px, 1120px); }
+      .topbar { min-height: 62px; font-size: 9px; }
+      main { padding-top: 34px; }
+      .stage-wrap { width: calc(100% - 18px); padding: 8px; }
+      .stage { aspect-ratio: 0.94; }
+      .side-note { display: none; }
+      .footer { font-size: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">f</span><span>The Fav Club</span></div>
+      <span class="issue">A special edition · No. 01</span>
+    </header>
+
+    <main>
+      <p class="eyebrow">A little mystery, just for you</p>
+      <h1 class="page-heading">who is our fav person</h1>
+
+      <div class="stage-wrap">
+        <span class="side-note left" aria-hidden="true">Private screening</span>
+        <span class="side-note right" aria-hidden="true">Est. forever</span>
+        <div class="stage" id="stage" aria-label="A portrait behind closed curtains">
+          <div class="portrait-frame" id="portrait" aria-hidden="true">
+            <img id="portrait-image" alt="A portrait of someone very special">
+          </div>
+          <div class="curtain curtain-left" aria-hidden="true"></div>
+          <div class="curtain curtain-right" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <section class="reveal-copy" id="reveal-copy" aria-live="polite" hidden>
+        <p>u r our fav person!</p>
+      </section>
+
+      <button class="reveal-button" id="reveal-button" type="button" aria-expanded="false" aria-controls="reveal-copy">
+        <span class="button-star" aria-hidden="true">✳</span>
+        <span id="button-label">Pull the curtain</span>
+      </button>
+    </main>
+
+    <footer class="footer">
+      <span>Made with very good taste</span>
+      <span>For our favorite, always</span>
+    </footer>
+  </div>
+
+  <script>
+    const stage = document.querySelector("#stage");
+    const portrait = document.querySelector("#portrait");
+    const image = document.querySelector("#portrait-image");
+    const copy = document.querySelector("#reveal-copy");
+    const button = document.querySelector("#reveal-button");
+    const buttonLabel = document.querySelector("#button-label");
+
+    fetch("/api/picture", { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("The featured picture could not be loaded.");
+        }
+        return response.json();
+      })
+      .then(({ url }) => {
+        image.src = url;
+      })
+      .catch((error) => {
+        console.error(error);
+        image.alt = "Picture unavailable. Start the site with py app.py.";
+      });
+
+    button.addEventListener("click", () => {
+      const isOpen = stage.classList.toggle("is-open");
+      portrait.setAttribute("aria-hidden", String(!isOpen));
+      copy.hidden = !isOpen;
+      button.setAttribute("aria-expanded", String(isOpen));
+      buttonLabel.textContent = isOpen ? "Close the curtain" : "Pull the curtain";
+    });
+  </script>
+</body>
+</html>
