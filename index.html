@@ -23,6 +23,20 @@
 
     * { box-sizing: border-box; }
 
+    [hidden] { display: none !important; }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     html { overflow-x: clip; }
 
     body {
@@ -198,6 +212,83 @@
       transform: rotate(1deg);
     }
 
+    .pass-panel {
+      width: min(100%, 520px);
+      margin: 27px auto 0;
+      padding-top: 19px;
+      border-top: 1px solid #17171466;
+      animation: copy-in 350ms both;
+    }
+
+    .pass-panel h2 {
+      margin: 0 0 7px;
+      font-family: var(--display);
+      font-size: 23px;
+    }
+
+    .pass-panel > p {
+      display: block;
+      margin: 0 0 16px;
+      padding: 0;
+      background: none;
+      border: 0;
+      box-shadow: none;
+      font-size: 12px;
+      line-height: 1.6;
+      transform: none;
+    }
+
+    .pass-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 13px;
+    }
+
+    .pass-form input[type="file"] { max-width: 100%; font: 11px var(--mono); }
+
+    .pass-action {
+      min-height: 42px;
+      padding: 0 15px;
+      color: var(--paper);
+      background: var(--teal);
+      border: 1px solid var(--ink);
+      box-shadow: 3px 3px 0 var(--ink);
+      cursor: pointer;
+      font: 500 10px var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .pass-action:hover { background: var(--green); color: var(--ink); }
+    .pass-action:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+    .pass-action:disabled { cursor: wait; opacity: 0.65; }
+
+    .share-result {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .share-link {
+      width: min(100%, 370px);
+      min-height: 39px;
+      padding: 0 10px;
+      color: var(--ink);
+      background: #fffdf5;
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      font: 11px var(--mono);
+    }
+
+    .pass-status { min-height: 18px; margin: 11px 0 0; font-size: 11px; }
+    .pass-status[data-kind="error"] { color: var(--red); }
+    .pass-status[data-kind="success"] { color: var(--teal); }
+
     .reveal-button {
       display: inline-flex;
       align-items: center;
@@ -287,6 +378,25 @@
 
       <section class="reveal-copy" id="reveal-copy" aria-live="polite" hidden>
         <p>u r our fav person!</p>
+        <button class="reveal-button" id="pass-button" type="button" aria-expanded="false" aria-controls="pass-panel">
+          <span class="button-star" aria-hidden="true">✳</span>
+          <span id="pass-button-label">Pass it on</span>
+        </button>
+        <section class="pass-panel" id="pass-panel" aria-labelledby="pass-heading" hidden>
+          <h2 id="pass-heading">Share the love</h2>
+          <p>Upload a picture to make a private-by-link reveal. Anyone with the link can see that photo.</p>
+          <form class="pass-form" id="pass-form">
+            <label class="visually-hidden" for="pass-picture">Choose a picture</label>
+            <input id="pass-picture" name="picture" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required>
+            <button class="pass-action" id="pass-submit" type="submit">Upload &amp; make link</button>
+          </form>
+          <p class="pass-status" id="pass-status" role="status" aria-live="polite"></p>
+          <div class="share-result" id="share-result" hidden>
+            <label class="visually-hidden" for="share-link">Your private reveal link</label>
+            <input class="share-link" id="share-link" type="url" readonly>
+            <button class="pass-action" id="copy-link" type="button">Copy link</button>
+          </div>
+        </section>
       </section>
 
       <button class="reveal-button" id="reveal-button" type="button" aria-expanded="false" aria-controls="reveal-copy">
@@ -308,6 +418,13 @@
     const copy = document.querySelector("#reveal-copy");
     const button = document.querySelector("#reveal-button");
     const buttonLabel = document.querySelector("#button-label");
+    const passButton = document.querySelector("#pass-button");
+    const passPanel = document.querySelector("#pass-panel");
+    const passForm = document.querySelector("#pass-form");
+    const passStatus = document.querySelector("#pass-status");
+    const shareResult = document.querySelector("#share-result");
+    const shareLink = document.querySelector("#share-link");
+    const passSubmit = document.querySelector("#pass-submit");
 
     fetch("/api/picture", { cache: "no-store" })
       .then((response) => {
@@ -330,6 +447,57 @@
       copy.hidden = !isOpen;
       button.setAttribute("aria-expanded", String(isOpen));
       buttonLabel.textContent = isOpen ? "Close the curtain" : "Pull the curtain";
+      if (!isOpen) {
+        passPanel.hidden = true;
+        passButton.setAttribute("aria-expanded", "false");
+        document.querySelector("#pass-button-label").textContent = "Pass it on";
+      }
+    });
+
+    passButton.addEventListener("click", () => {
+      passPanel.hidden = !passPanel.hidden;
+      const isExpanded = !passPanel.hidden;
+      passButton.setAttribute("aria-expanded", String(isExpanded));
+      document.querySelector("#pass-button-label").textContent = isExpanded ? "Close" : "Pass it on";
+    });
+
+    passForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      passSubmit.disabled = true;
+      passStatus.textContent = "Making your one-of-a-kind link...";
+      passStatus.dataset.kind = "";
+      try {
+        const response = await fetch("/api/pass-it-on", {
+          method: "POST",
+          body: new FormData(passForm),
+          cache: "no-store"
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Could not make the link.");
+        shareLink.value = new URL(result.url, window.location.href).href;
+        shareResult.hidden = false;
+        passStatus.textContent = "Your reveal link is ready to send.";
+        passStatus.dataset.kind = "success";
+        passForm.reset();
+      } catch (error) {
+        passStatus.textContent = error.message;
+        passStatus.dataset.kind = "error";
+      } finally {
+        passSubmit.disabled = false;
+      }
+    });
+
+    document.querySelector("#copy-link").addEventListener("click", async (event) => {
+      try {
+        await navigator.clipboard.writeText(shareLink.value);
+        passStatus.textContent = "Link copied. Send it to someone lovely.";
+      } catch (error) {
+        shareLink.focus();
+        shareLink.select();
+        document.execCommand("copy");
+        passStatus.textContent = "Link copied. Send it to someone lovely.";
+      }
+      passStatus.dataset.kind = "success";
     });
   </script>
 </body>

@@ -16,6 +16,7 @@ from urllib.parse import quote, unquote, urlsplit
 ROOT_DIR: Path = Path(__file__).resolve().parent
 PICTURES_DIR: Path = ROOT_DIR / "pictures"
 SELECTION_FILE: Path = ROOT_DIR / "featured-picture.json"
+SHARED_PHOTOS_FILE: Path = ROOT_DIR / "shared-photos.json"
 DEFAULT_FEATURED_PICTURE: str = "portrait-01.jpg"
 PORT: int = int(os.environ.get("PORT", "8000"))
 ADMIN_USERNAME: str = os.environ.get("FAV_ADMIN_USERNAME", "nrobins")
@@ -34,6 +35,7 @@ SUPPORTED_IMAGE_EXTENSIONS: frozenset[str] = frozenset(
 ACTIVE_SESSIONS: dict[str, float] = {}
 SESSION_LOCK: Lock = Lock()
 SELECTION_LOCK: Lock = Lock()
+SHARED_PHOTOS_LOCK: Lock = Lock()
 
 
 def is_supported_filename(filename: str) -> bool:
@@ -76,6 +78,52 @@ def set_featured_picture(filename: str) -> None:
                 temporary_file.unlink()
 
 
+def is_valid_share_token(token: str) -> bool:
+    return 24 <= len(token) <= 64 and all(
+        character.isalnum() or character in "_-" for character in token
+    )
+
+
+def get_shared_filename(token: str) -> str | None:
+    if not is_valid_share_token(token):
+        return None
+    with SHARED_PHOTOS_LOCK:
+        try:
+            shares = json.loads(SHARED_PHOTOS_FILE.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        if not isinstance(shares, dict):
+            return None
+        filename = shares.get(token)
+        if (
+            not isinstance(filename, str)
+            or not is_supported_filename(filename)
+            or not (PICTURES_DIR / filename).is_file()
+        ):
+            return None
+        return filename
+
+
+def create_shared_photo(filename: str) -> str:
+    token = secrets.token_urlsafe(24)
+    temporary_file = ROOT_DIR / f".shares-{secrets.token_hex(8)}.tmp"
+    with SHARED_PHOTOS_LOCK:
+        try:
+            try:
+                shares = json.loads(SHARED_PHOTOS_FILE.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                shares = {}
+            if not isinstance(shares, dict):
+                shares = {}
+            shares[token] = filename
+            temporary_file.write_text(json.dumps(shares), encoding="utf-8")
+            os.replace(temporary_file, SHARED_PHOTOS_FILE)
+        finally:
+            if temporary_file.exists():
+                temporary_file.unlink()
+    return token
+
+
 def has_valid_image_signature(extension: str, content: bytes) -> bool:
     extension = extension.lower()
     if extension in {".jpg", ".jpeg"}:
@@ -104,11 +152,29 @@ class SiteHandler(SimpleHTTPRequestHandler):
             self.path = "/admin.html"
             super().do_GET()
             return
-        if path == "/admin.html" or path in {"/app.py", "/featured-picture.json"}:
+        if path == "/admin.html" or path in {
+            "/app.py",
+            "/featured-picture.json",
+            "/shared-photos.json",
+        }:
             self.send_json(404, {"error": "Not found."})
             return
         if path == "/api/picture":
             self.send_featured_picture()
+            return
+        if path.startswith("/api/shared/"):
+            self.send_shared_photo(path.removeprefix("/api/shared/"))
+            return
+        if path.startswith("/shared-photo/"):
+            self.serve_shared_photo(path.removeprefix("/shared-photo/"))
+            return
+        if path.startswith("/share/"):
+            token = path.removeprefix("/share/")
+            if is_valid_share_token(token):
+                self.path = "/share.html"
+                super().do_GET()
+            else:
+                self.send_json(404, {"error": "This share link is not valid."})
             return
         if path == "/api/admin/session":
             self.send_json(200, {"authenticated": self.is_authenticated()})
@@ -138,6 +204,9 @@ class SiteHandler(SimpleHTTPRequestHandler):
         if path == "/api/admin/upload":
             if self.require_admin():
                 self.upload_picture()
+            return
+        if path == "/api/pass-it-on":
+            self.create_share_link()
             return
         self.send_json(404, {"error": "Not found."})
 
@@ -272,6 +341,20 @@ class SiteHandler(SimpleHTTPRequestHandler):
             {"url": f"/pictures/{quote(filename, safe='')}"},
         )
 
+    def send_shared_photo(self, token: str) -> None:
+        if get_shared_filename(token) is None:
+            self.send_json(404, {"error": "This share link is not valid."})
+            return
+        self.send_json(200, {"url": f"/shared-photo/{quote(token, safe='')}"})
+
+    def serve_shared_photo(self, token: str) -> None:
+        filename = get_shared_filename(token)
+        if filename is None:
+            self.send_json(404, {"error": "This share link is not valid."})
+            return
+        self.path = f"/pictures/{quote(filename, safe='')}"
+        super().do_GET()
+
     def send_picture_list(self) -> None:
         pictures = sorted(
             (
@@ -317,14 +400,27 @@ class SiteHandler(SimpleHTTPRequestHandler):
         self.send_json(200, {"selected": filename})
 
     def upload_picture(self) -> None:
+        filename = self.save_uploaded_image("upload")
+        if filename is None:
+            return
+        self.send_json(201, {"filename": filename})
+
+    def create_share_link(self) -> None:
+        filename = self.save_uploaded_image("pass")
+        if filename is None:
+            return
+        token = create_shared_photo(filename)
+        self.send_json(201, {"url": f"/share/{quote(token, safe='')}"})
+
+    def save_uploaded_image(self, prefix: str) -> str | None:
         try:
             content_length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             self.send_json(400, {"error": "Invalid upload size."})
-            return
+            return None
         if content_length <= 0 or content_length > MAX_UPLOAD_BYTES + 64 * 1024:
             self.send_json(413, {"error": "Choose a picture smaller than 8 MB."})
-            return
+            return None
 
         content_type = self.headers.get("Content-Type", "")
         boundary = self.headers.get_boundary()
@@ -335,7 +431,7 @@ class SiteHandler(SimpleHTTPRequestHandler):
             or "\n" in content_type
         ):
             self.send_json(400, {"error": "Choose a picture file to upload."})
-            return
+            return None
 
         message_bytes = (
             f"Content-Type: {content_type}\r\nMIME-Version: 1.0\r\n\r\n".encode("ascii")
@@ -344,7 +440,7 @@ class SiteHandler(SimpleHTTPRequestHandler):
         message = BytesParser(policy=policy.default).parsebytes(message_bytes)
         if not message.is_multipart():
             self.send_json(400, {"error": "Choose a picture file to upload."})
-            return
+            return None
 
         upload_name: str | None = None
         upload_content: bytes | None = None
@@ -357,20 +453,20 @@ class SiteHandler(SimpleHTTPRequestHandler):
 
         if not upload_name or not isinstance(upload_content, bytes):
             self.send_json(400, {"error": "Choose a picture file to upload."})
-            return
+            return None
         if len(upload_content) > MAX_UPLOAD_BYTES:
             self.send_json(413, {"error": "Choose a picture smaller than 8 MB."})
-            return
+            return None
         extension = Path(upload_name).suffix.lower()
         if extension not in SUPPORTED_IMAGE_EXTENSIONS or not has_valid_image_signature(
             extension, upload_content
         ):
             self.send_json(400, {"error": "Use a valid JPG, PNG, WEBP, or GIF image."})
-            return
+            return None
 
-        filename = f"upload-{secrets.token_hex(12)}{extension}"
+        filename = f"{prefix}-{secrets.token_hex(12)}{extension}"
         (PICTURES_DIR / filename).write_bytes(upload_content)
-        self.send_json(201, {"filename": filename})
+        return filename
 
 
 def main() -> None:
