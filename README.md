@@ -23,3 +23,7 @@ Pictures in `pictures/` are shown as thumbnails in the admin page. The admin pag
 After opening the curtain, choose **Pass it on**, upload a JPG, PNG, WEBP, or GIF up to 8 MB, then copy the generated reveal link. Each link points to its own uploaded picture and does not change the featured picture on the main page. Anyone with a link can view its photo.
 
 The server currently runs on your own computer at `127.0.0.1`, so generated links work there only. To share with someone on the internet, deploy the site to a publicly reachable host and use that hosted address; do not expose this local server or its built-in admin password directly to the internet.
+
+## AWS deployment
+
+For the Amplify frontend and CDK-managed API, storage, Cognito admin, and optional custom-domain resources, follow the [AWS deployment guide](infra/README.md). The AWS backend is separate from the local `app.py` server.

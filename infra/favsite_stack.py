@@ -76,7 +76,9 @@ class FavSiteStack(Stack):
             ),
             sort_key=dynamodb.Attribute(name="sk", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
-            point_in_time_recovery=True,
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            ),
             time_to_live_attribute="expiresAt",
             encryption=dynamodb.TableEncryption.AWS_MANAGED,
             removal_policy=RemovalPolicy.RETAIN,

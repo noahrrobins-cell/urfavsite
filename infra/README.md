@@ -18,13 +18,14 @@ cd infra
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-cdk synth
-cdk deploy
+cdk.cmd bootstrap
+cdk.cmd synth
+cdk.cmd deploy
 ```
 
 The stack creates a private S3 bucket, a retained DynamoDB table, a Cognito user pool/client, an HTTP API backed by Python Lambda, and seeds the bucket from `../pictures/`. S3 and DynamoDB use retain policies so stack removal does not delete user photos or metadata.
 
-Create the first administrator in the Cognito user pool from the AWS Console. Self-sign-up is disabled. Use username `nrobins` and set a new strong password there; the old local development password is not reused in AWS.
+Create the first administrator in the Cognito user pool from the AWS Console. Self-sign-up is disabled. Create username `nrobins` with a permanent password that meets the 14-character Cognito policy. Avoid a temporary password; this custom sign-in page does not implement Cognito's `NEW_PASSWORD_REQUIRED` challenge. The local development password is not reused in AWS.
 
 ## Connect Amplify
 
@@ -33,18 +34,18 @@ After deployment, copy the `ApiBaseUrl` stack output. In Amplify Hosting, add it
 The API allows all browser origins by default so the Amplify preview and custom-domain hosts can reach it. Restrict the CDK context value `siteOrigins` to comma-separated site origins before production, for example:
 
 ```powershell
-cdk deploy -c siteOrigins=https://www.example.com,https://main.example.amplifyapp.com
+cdk.cmd deploy -c "siteOrigins=https://www.example.com,https://main.example.amplifyapp.com"
 ```
 
 ## Optional custom domain
 
-To let the stack associate your existing Amplify app with its Route 53 domain, pass its Amplify app ID and root domain name:
+Only use this option when the domain is not already associated with the Amplify app. To let the stack create an Amplify association for your app, pass its Amplify app ID and root domain name:
 
 ```powershell
-cdk deploy -c amplifyAppId=d123example -c domainName=example.com -c amplifyBranch=main -c domainPrefix=www
+cdk.cmd deploy -c amplifyAppId=d123example -c domainName=example.com -c amplifyBranch=main -c domainPrefix=www
 ```
 
-The hosted zone must be in the same AWS account for Amplify to configure its Route 53 records automatically. If DNS is hosted elsewhere, use the domain association's certificate validation record and Amplify's displayed CNAME instructions.
+Do not add a second association for a domain that is already connected in the Amplify console. The hosted zone must be in the same AWS account for Amplify to configure its Route 53 records automatically. If DNS is hosted elsewhere, use the domain association's certificate validation record and Amplify's displayed CNAME instructions.
 
 ## Local development
 
