@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+infra/.venv/
+infra/cdk.out/
+infra/node_modules/

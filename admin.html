@@ -289,7 +289,11 @@
     </footer>
   </div>
 
+  <script src="/runtime-config.js"></script>
+  <script src="/cloud-upload.js"></script>
   <script>
+    const API_BASE_URL = (window.APP_CONFIG?.apiBaseUrl || "").replace(/\/$/, "");
+    const apiUrl = (path) => `${API_BASE_URL}${path}`;
     const loginPanel = document.querySelector("#login-panel");
     const loginForm = document.querySelector("#login-form");
     const loginStatus = document.querySelector("#login-status");
@@ -301,7 +305,10 @@
     const uploadButton = document.querySelector("#upload-button");
 
     async function request(url, options = {}) {
-      const response = await fetch(url, { cache: "no-store", ...options });
+      const headers = new Headers(options.headers || {});
+      const accessToken = sessionStorage.getItem("favAdminAccessToken");
+      if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+      const response = await fetch(apiUrl(url), { cache: "no-store", ...options, headers });
       const result = await response.json();
       if (!response.ok) {
         throw new Error(result.error || "Something went wrong.");
@@ -332,8 +339,10 @@
         return;
       }
 
-      for (const filename of data.pictures) {
-        const isSelected = filename === data.selected;
+      for (const picture of data.pictures) {
+        const filename = typeof picture === "string" ? picture : picture.filename;
+        const key = typeof picture === "string" ? filename : picture.key;
+        const isSelected = data.selected === key || data.selected === filename;
         const button = document.createElement("button");
         button.className = "picture-choice";
         button.type = "button";
@@ -343,7 +352,9 @@
         const thumbnail = document.createElement("div");
         thumbnail.className = "thumb-wrap";
         const image = document.createElement("img");
-        image.src = `/pictures/${encodeURIComponent(filename)}`;
+        image.src = typeof picture === "string"
+          ? `/pictures/${encodeURIComponent(filename)}`
+          : picture.url;
         image.alt = "";
         image.loading = "lazy";
         thumbnail.append(image);
@@ -371,7 +382,7 @@
             await request("/api/admin/select", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ filename })
+              body: JSON.stringify({ filename, key })
             });
             await loadPictures();
             setStatus(deskStatus, "Picture changed. The curtain is ready.", "success");
@@ -391,11 +402,14 @@
       setStatus(loginStatus, "Checking your details...");
       try {
         const fields = new FormData(loginForm);
-        await request("/api/admin/login", {
+        const result = await request("/api/admin/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: fields.get("username"), password: fields.get("password") })
         });
+        if (result.accessToken) {
+          sessionStorage.setItem("favAdminAccessToken", result.accessToken);
+        }
         loginForm.reset();
         showDesk(true);
         setStatus(deskStatus, "Signed in. Choose a picture below.", "success");
@@ -413,7 +427,14 @@
       setStatus(deskStatus, "Adding picture to the collection...");
       try {
         const formData = new FormData(uploadForm);
-        const result = await request("/api/admin/upload", { method: "POST", body: formData });
+        const result = API_BASE_URL
+          ? await window.uploadPictureToS3(
+              formData.get("picture"),
+              "/api/admin/upload-url",
+              "/api/admin/upload-complete",
+              `Bearer ${sessionStorage.getItem("favAdminAccessToken")}`
+            )
+          : await request("/api/admin/upload", { method: "POST", body: formData });
         uploadForm.reset();
         await loadPictures();
         setStatus(deskStatus, `${result.filename} added. Select it below when you are ready.`, "success");
@@ -428,6 +449,7 @@
       try {
         await request("/api/admin/logout", { method: "POST" });
       } finally {
+        sessionStorage.removeItem("favAdminAccessToken");
         showDesk(false);
         setStatus(loginStatus, "You are signed out.", "success");
       }

@@ -118,8 +118,13 @@
     </footer>
   </div>
 
+  <script src="/runtime-config.js"></script>
   <script>
-    const token = window.location.pathname.split("/").filter(Boolean).at(-1) || "";
+    const API_BASE_URL = (window.APP_CONFIG?.apiBaseUrl || "").replace(/\/$/, "");
+    const apiUrl = (path) => `${API_BASE_URL}${path}`;
+    const token = new URLSearchParams(window.location.search).get("token")
+      || window.location.pathname.split("/").filter(Boolean).at(-1)
+      || "";
     const stage = document.querySelector("#stage");
     const portrait = document.querySelector("#portrait");
     const image = document.querySelector("#portrait-image");
@@ -128,7 +133,7 @@
     const buttonLabel = document.querySelector("#button-label");
     const status = document.querySelector("#link-status");
 
-    fetch(`/api/shared/${encodeURIComponent(token)}`, { cache: "no-store" })
+    fetch(apiUrl(`/api/shared/${encodeURIComponent(token)}`), { cache: "no-store" })
       .then((response) => {
         if (!response.ok) throw new Error("This reveal link is not available.");
         return response.json();

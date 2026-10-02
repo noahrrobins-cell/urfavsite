@@ -1,0 +1,18 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - if [ -z "${API_BASE_URL:-}" ]; then echo "Set Amplify environment variable API_BASE_URL to the CDK ApiBaseUrl output." >&2; exit 1; fi
+    build:
+      commands:
+        - rm -rf dist
+        - mkdir -p dist
+        - cp index.html admin.html share.html cloud-upload.js dist/
+        - node -e 'process.stdout.write("window.APP_CONFIG = " + JSON.stringify({apiBaseUrl: process.env.API_BASE_URL}) + ";\n")' > dist/runtime-config.js
+  artifacts:
+    baseDirectory: dist
+    files:
+      - "**/*"
+  cache:
+    paths: []

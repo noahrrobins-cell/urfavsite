@@ -411,7 +411,11 @@
     </footer>
   </div>
 
+  <script src="/runtime-config.js"></script>
+  <script src="/cloud-upload.js"></script>
   <script>
+    const API_BASE_URL = (window.APP_CONFIG?.apiBaseUrl || "").replace(/\/$/, "");
+    const apiUrl = (path) => `${API_BASE_URL}${path}`;
     const stage = document.querySelector("#stage");
     const portrait = document.querySelector("#portrait");
     const image = document.querySelector("#portrait-image");
@@ -426,7 +430,7 @@
     const shareLink = document.querySelector("#share-link");
     const passSubmit = document.querySelector("#pass-submit");
 
-    fetch("/api/picture", { cache: "no-store" })
+    fetch(apiUrl("/api/picture"), { cache: "no-store" })
       .then((response) => {
         if (!response.ok) {
           throw new Error("The featured picture could not be loaded.");
@@ -438,7 +442,7 @@
       })
       .catch((error) => {
         console.error(error);
-        image.alt = "Picture unavailable. Start the site with py app.py.";
+        image.alt = "Picture unavailable. Run python app.py, then open http://127.0.0.1:8000.";
       });
 
     button.addEventListener("click", () => {
@@ -467,13 +471,23 @@
       passStatus.textContent = "Making your one-of-a-kind link...";
       passStatus.dataset.kind = "";
       try {
-        const response = await fetch("/api/pass-it-on", {
-          method: "POST",
-          body: new FormData(passForm),
-          cache: "no-store"
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Could not make the link.");
+        let result;
+        if (API_BASE_URL) {
+          const picture = new FormData(passForm).get("picture");
+          result = await window.uploadPictureToS3(
+            picture,
+            "/api/pass-it-on/start",
+            "/api/pass-it-on/complete"
+          );
+        } else {
+          const response = await fetch(apiUrl("/api/pass-it-on"), {
+            method: "POST",
+            body: new FormData(passForm),
+            cache: "no-store"
+          });
+          result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Could not make the link.");
+        }
         shareLink.value = new URL(result.url, window.location.href).href;
         shareResult.hidden = false;
         passStatus.textContent = "Your reveal link is ready to send.";
