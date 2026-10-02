@@ -1,4 +1,11 @@
 version: 1
+customRules:
+  - source: /admin
+    target: /admin.html
+    status: "200"
+  - source: /admin/
+    target: /admin.html
+    status: "200"
 frontend:
   phases:
     preBuild:

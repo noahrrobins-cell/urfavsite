@@ -1,0 +1,57 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AssumeCdkBootstrapDeploymentRoles",
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": [
+        "arn:aws:iam::836620944114:role/cdk-hnb659fds-deploy-role-836620944114-us-east-2",
+        "arn:aws:iam::836620944114:role/cdk-hnb659fds-file-publishing-role-836620944114-us-east-2",
+        "arn:aws:iam::836620944114:role/cdk-hnb659fds-lookup-role-836620944114-us-east-2"
+      ]
+    },
+    {
+      "Sid": "ReadCdkBootstrapStackStatus",
+      "Effect": "Allow",
+      "Action": "cloudformation:DescribeStacks",
+      "Resource": "arn:aws:cloudformation:us-east-2:836620944114:stack/CDKToolkit/*"
+    },
+    {
+      "Sid": "ReadCdkBootstrapVersion",
+      "Effect": "Allow",
+      "Action": "ssm:GetParameter",
+      "Resource": "arn:aws:ssm:us-east-2:836620944114:parameter/cdk-bootstrap/hnb659fds/version"
+    },
+    {
+      "Sid": "UpdateWebsiteAmplifyAppEnvironment",
+      "Effect": "Allow",
+      "Action": [
+        "amplify:GetApp",
+        "amplify:UpdateApp"
+      ],
+      "Resource": "arn:aws:amplify:us-east-2:836620944114:apps/d18okff4tkswie"
+    },
+    {
+      "Sid": "BuildWebsiteMainBranch",
+      "Effect": "Allow",
+      "Action": [
+        "amplify:GetBranch",
+        "amplify:StartJob"
+      ],
+      "Resource": "arn:aws:amplify:us-east-2:836620944114:apps/d18okff4tkswie/branches/main"
+    },
+    {
+      "Sid": "InspectWebsiteMainBranchBuilds",
+      "Effect": "Allow",
+      "Action": [
+        "amplify:GetJob",
+        "amplify:ListJobs"
+      ],
+      "Resource": [
+        "arn:aws:amplify:us-east-2:836620944114:apps/d18okff4tkswie/branches/main",
+        "arn:aws:amplify:us-east-2:836620944114:apps/d18okff4tkswie/branches/main/jobs/*"
+      ]
+    }
+  ]
+}

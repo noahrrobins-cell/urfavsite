@@ -341,6 +341,9 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     method = event.get("requestContext", {}).get("http", {}).get("method", "GET")
     path = event.get("rawPath", "/")
 
+    if method == "OPTIONS":
+        return {"statusCode": 204, "headers": {}, "body": ""}
+
     if path == "/api/picture" and method == "GET":
         try:
             return response(200, {"url": signed_picture_url(get_featured_key())})

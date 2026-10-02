@@ -8,6 +8,7 @@ This CDK stack deploys the production API and storage. The existing Amplify app 
 - Node.js and the AWS CDK CLI (`npm install -g aws-cdk`)
 - AWS credentials configured for the account and region where the Amplify app runs
 - The AWS CDK bootstrap stack deployed in that account and region (`cdk bootstrap`)
+- A CDK deployer policy attached to the deployment identity, or an equivalent managed deployment role
 
 ## Deploy the backend
 
@@ -24,6 +25,10 @@ cdk.cmd deploy
 ```
 
 The stack creates a private S3 bucket, a retained DynamoDB table, a Cognito user pool/client, an HTTP API backed by Python Lambda, and seeds the bucket from `../pictures/`. S3 and DynamoDB use retain policies so stack removal does not delete user photos or metadata.
+
+The inline policy in `policies/cdk-deployer-inline-policy.json` is for deploying into an already bootstrapped account and updating/rebuilding this Amplify app's `main` branch. Replace `<AWS_ACCOUNT_ID>` and `<AWS_REGION>` before attaching it. Its app ID is taken from the Amplify build log; update it if you use another app. A privileged administrator must perform the one-time `cdk bootstrap` first.
+
+IAM permissions do not limit AWS spend or guarantee Free Tier usage. Configure an AWS Budget and billing alerts separately; domain registration, Route 53 hosted zones, and usage beyond Free Tier allowances can incur charges.
 
 Create the first administrator in the Cognito user pool from the AWS Console. Self-sign-up is disabled. Create username `nrobins` with a permanent password that meets the 14-character Cognito policy. Avoid a temporary password; this custom sign-in page does not implement Cognito's `NEW_PASSWORD_REQUIRED` challenge. The local development password is not reused in AWS.
 
