@@ -1,5 +1,14 @@
 version: 1
 customRules:
+  - source: /person
+    target: /index.html
+    status: "200"
+  - source: /person/
+    target: /index.html
+    status: "200"
+  - source: /
+    target: /person
+    status: "302"
   - source: /admin
     target: /admin.html
     status: "200"
