@@ -122,6 +122,8 @@
       background: var(--teal);
       border: 1px solid var(--ink);
       isolation: isolate;
+      cursor: pointer;
+      touch-action: pan-y;
     }
 
     .portrait-frame {
@@ -348,6 +350,31 @@
       .footer { font-size: 8px; }
     }
 
+    @media (max-height: 820px) {
+      .topbar { min-height: 58px; }
+      main { padding: 18px 0 12px; }
+      .eyebrow { margin-bottom: 10px; }
+      .page-heading { margin-bottom: 12px; font-size: clamp(32px, 5vw, 50px); }
+      .stage-wrap { width: min(100%, 560px); }
+      .reveal-copy { margin-top: 16px; }
+      .reveal-button { margin-top: 14px; }
+      .footer { min-height: 36px; }
+    }
+
+    @media (max-height: 680px) {
+      .topbar { min-height: 50px; }
+      main { padding: 8px 0; }
+      .eyebrow { margin-bottom: 6px; }
+      .page-heading { margin-bottom: 8px; font-size: clamp(28px, 5vw, 42px); }
+      .stage-wrap { width: min(100%, 500px); }
+      .reveal-button { min-height: 44px; margin-top: 8px; }
+      .footer { min-height: 30px; }
+    }
+
+    @media (max-width: 560px) and (max-height: 680px) {
+      .stage-wrap { width: min(calc(100% - 18px), calc(100svh - 380px)); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
@@ -367,7 +394,7 @@
       <div class="stage-wrap">
         <span class="side-note left" aria-hidden="true">Private screening</span>
         <span class="side-note right" aria-hidden="true">Est. forever</span>
-        <div class="stage" id="stage" aria-label="A portrait behind closed curtains">
+        <div class="stage" id="stage" role="button" tabindex="0" aria-expanded="false" aria-label="Open the curtains">
           <div class="portrait-frame" id="portrait" aria-hidden="true">
             <img id="portrait-image" alt="A portrait of someone very special">
           </div>
@@ -445,10 +472,12 @@
         image.alt = "Picture unavailable. Run python app.py, then open http://127.0.0.1:8000.";
       });
 
-    button.addEventListener("click", () => {
-      const isOpen = stage.classList.toggle("is-open");
+    function setCurtainOpen(isOpen) {
+      stage.classList.toggle("is-open", isOpen);
       portrait.setAttribute("aria-hidden", String(!isOpen));
       copy.hidden = !isOpen;
+      stage.setAttribute("aria-expanded", String(isOpen));
+      stage.setAttribute("aria-label", isOpen ? "Close the curtains" : "Open the curtains");
       button.setAttribute("aria-expanded", String(isOpen));
       buttonLabel.textContent = isOpen ? "Close the curtain" : "Pull the curtain";
       if (!isOpen) {
@@ -456,6 +485,43 @@
         passButton.setAttribute("aria-expanded", "false");
         document.querySelector("#pass-button-label").textContent = "Pass it on";
       }
+    }
+
+    function toggleCurtain() {
+      setCurtainOpen(!stage.classList.contains("is-open"));
+    }
+
+    button.addEventListener("click", toggleCurtain);
+    stage.addEventListener("click", () => {
+      if (suppressStageClick) {
+        suppressStageClick = false;
+        return;
+      }
+      toggleCurtain();
+    });
+
+    stage.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleCurtain();
+      }
+    });
+
+    let touchStartX = null;
+    let suppressStageClick = false;
+    stage.addEventListener("pointerdown", (event) => {
+      touchStartX = event.pointerType === "touch" ? event.clientX : null;
+    });
+
+    stage.addEventListener("pointerup", (event) => {
+      if (touchStartX === null) return;
+      const swipeDistance = event.clientX - touchStartX;
+      touchStartX = null;
+      if (Math.abs(swipeDistance) < 48) return;
+      event.preventDefault();
+      suppressStageClick = true;
+      toggleCurtain();
+      window.setTimeout(() => { suppressStageClick = false; }, 250);
     });
 
     passButton.addEventListener("click", () => {
